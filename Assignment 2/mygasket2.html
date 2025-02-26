@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>2D Sierpinski Gasket</title>
+</head>
+<body>
+<label id="Instruction">Input will default to slider/box if the coinciding input box is left blank</label><br><br>
+<label for="R">R(0-255):</label>
+<input type="text" id="rbutton" name="rbutton">
+
+<label for="G">G(0-255):</label>
+<input type="text" id="gbutton" name="gbutton">
+
+<label for="B">B(0-255):</label>
+<input type="text" id="bbutton" name="bbutton">  
+<label for="Color">RGB:</label>
+<input type="color" id="rgbbutton-picker" name="rgbbutton-picker"><br><br>
+
+<label for="Points">Points(500-5000):</label>
+<input type="range" id="npoints" name="npoints" min=500 max=5000 onchange="onchange">
+
+<label for="Points">Points(500-5000)</label>
+<input type="text" id="npoints-text" name="npoints-text"><br><br>
+
+<label for="Animation Speed">Animation Speed(.01-1):</label>
+<input type="range" id="speed" name="speed" min=.01 max=1 step =".01" onchange="onchange">
+<label for="B">Speed(.01-1)</label>
+<input type="text" id="aspeed-text" name="aspeed-text"><br><br>
+
+
+<label for="ViewPortSize">ViewPortSize(10-500):</label>
+<input type="range" id="PortSize" name="speed" min=10 max=500 onchange="onchange">
+<label for="Width">Width(10-500):</label>
+<input type="text" id="vport-width-text" name="vport-width-text">
+<label for="Height">Height(10-50):</label>
+<input type="text" id="vport-height-text" name="vport-height-text"><br><br>
+
+<label id="RunStatus">Status: Currently running</label>
+
+<button id="AnimateButton">Animate</button>
+<button id="StopButton">Stop</button>
+
+<canvas id="gl-canvas" width="512" height="512">
+</canvas>
+<!--
+Fragment shader: interprets position
+Vertext Shader: interprets Color
+Uniform: GLSL global variables you can set before executing
+gl_position: special variable vertex shader is responsable for setting
+in: input variable that will receive data from a buffer
+-->
+<script id="fragment-shader" type="x-shader/x-fragment">
+#version 300 es
+precision mediump float;
+
+uniform vec4 uColor;
+out vec4 fColor;
+
+void
+main()
+{
+    fColor = uColor;
+}
+</script>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+#version 300 es
+
+
+in vec4 aPosition;
+uniform vec4 uScale;
+
+void
+main()
+{
+  gl_Position = aPosition * uScale;
+  gl_PointSize = 3.0;
+}
+</script>
+
+
+
+
+<script src="../Common/initShaders.js"></script>
+<script src="../Common/MVnew.js"></script>
+<script src="mygasket2.js"></script>
+
+</body>
+</html>
