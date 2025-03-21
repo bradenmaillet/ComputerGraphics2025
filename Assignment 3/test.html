@@ -1,0 +1,746 @@
+
+<! DOCTYPE HTML>
+
+<HEAD>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="../CSS/mathcont.css" rel="stylesheet" type="text/css">
+<meta name="description" content="Canvas with rubber band selection box.">
+<meta name="keywords" content="canvas, rubber band, selection, save, screen, restore, HTML5">
+<TITLE>Simple Rubberbanding Example.</TITLE>
+
+</HEAD>
+
+<BODY onLoad="initialize()" 
+	  onMouseDown="mouse_down(event)"   
+	  onMouseUp="mouse_up(event)"  
+	  onMouseMove="mouse_move(event)"">
+
+<table border="1"><tr><td width="600" height="600" >
+        
+        <canvas id="layer1" style="z-index:1; position:absolute;left:0px;top:0px " width="600" height="600"   > Your browser doesn't support the canvas tag!</canvas>
+
+        <canvas id="layer2" style="z-index:1; position:absolute;left:0px;top:0px " width="600" height="600"   > Your browser doesn't support the canvas tag!</canvas>
+
+</td><td>
+
+<h1>Canvas with rubber band selection box.</h1>
+
+mouse_down:
+<p id="val1"></p>
+
+mouse_move:
+<p id="val2"></p>
+
+mouse_up:
+<p id="val3"></p>
+
+<label id="Curr">Current Shape:</label></br>
+Select_Shape:
+<p>
+<button id= "Line">Line</button>
+<button id= "Circle">Circle</button>
+<button id= "Rectangle">Rectange</button>
+<button id= "Triangle">Triangle</button>
+<button id= "Polygon">Polygon</button>
+</p>
+
+Select Current Transformation:
+<p>
+	<button id= "Translation">Translation</button>
+	<button id= "Scaling">Scaling</button>
+	<button id= "RotationOG">Rotation(Origin)</button>
+	<button id= "RotationCenter">Rotation(Center)</button>
+	</p>
+
+<label id="CurrTrans">Current Transform:</label></br>
+
+Reset:
+<p>
+	<button id= "Reset">Reset</button>
+</p>
+
+</td>
+</tr>
+</table>
+</BODY>
+<SCRIPT LANGUAGE="JavaScript">
+
+var CurrTrans = document.getElementById("CurrTrans");
+var Curr = document.getElementById("Curr");
+
+var Currtype = null; ///////
+var Currtransform = null;
+var shapes = []; // Array to store all drawn shapes
+var Drawableflag = 1;
+var transformflag = 0;
+var matThree;
+var translateChange;
+
+function initialize() {
+    matThree = mat3();
+    canvas1 = document.getElementById("layer1");
+    ctx1 = canvas1.getContext("2d");
+    ctx1.fillStyle = "blue";
+    ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
+    
+    canvas2 = document.getElementById("layer2");
+    ctx2 = canvas2.getContext("2d");
+
+    is_down = false;
+
+    var LineBtn = document.getElementById("Line");
+    var CirBtn = document.getElementById("Circle");
+    var RectBtn = document.getElementById("Rectangle");
+    var TriBtn = document.getElementById("Triangle");
+    var PolyBtn = document.getElementById("Polygon");
+    var ResetBtn = document.getElementById("Reset");
+
+    var TranslateBtn = document.getElementById("Translation");
+    var ScaleBtn = document.getElementById("Scaling");
+    var RotateOGBtn = document.getElementById("RotationOG");
+    var RotateCenterBtn = document.getElementById("RotationCenter");
+
+    LineBtn.addEventListener("click", function() { ChangeShape("Line") });
+    CirBtn.addEventListener("click", function() { ChangeShape("Circle") });
+    RectBtn.addEventListener("click", function() { ChangeShape("Rectangle") });
+    TriBtn.addEventListener("click", function() { ChangeShape("Triangle") });
+    PolyBtn.addEventListener("click", function() { ChangeShape("Polygon") });
+    ResetBtn.addEventListener("click", function() { ChangeShape(null) });
+
+    // Apply transformations
+    TranslateBtn.addEventListener("click", function() { SetTransfrom("Translate") });
+    ScaleBtn.addEventListener("click", function() { SetTransfrom("Scale") });
+    RotateOGBtn.addEventListener("click", function() { SetTransfrom("RotateOG") });
+    RotateCenterBtn.addEventListener("click", function() { SetTransfrom("RotateCenter") });
+}
+
+///
+// callback for mouse down events
+function mouse_down(event) {
+    //ctx2.clearRect(0, 0, canvas2.width, canvas2.height);//
+    xDown = event.clientX;
+    yDown = event.clientY;
+    is_down = true;
+    coords = "X: "+ x + " Y: " + y + " is_down = " + is_down;
+    document.getElementById("val1").innerHTML = coords;
+}
+
+// callback for mouse move events
+function mouse_move(event) {
+    var rad;
+    x = event.clientX;
+    y = event.clientY;
+    
+    
+    if(is_down && Currtype != null && Drawableflag != 0) {
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        switch(Currtype){
+            case "Line":
+                ctx2.beginPath();
+                ctx2.moveTo(xDown, yDown);
+                ctx2.lineTo(x, y);
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            case "Circle":
+                var rad = Math.pow((Math.pow(x-xDown,2) + Math.pow(y-yDown, 2)),.5);
+                ctx2.beginPath();
+                ctx2.arc(xDown, yDown, rad, 0, 2 * Math.PI);
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            case "Rectangle":
+                ctx2.strokeStyle = "white";
+                ctx2.strokeRect(xDown,yDown, x-xDown, y-yDown);
+                break;
+            case "Triangle":
+                let p1 = { x: xDown, y: yDown };
+                let p2 = { x: x, y: yDown };
+                let p3 = { x: x, y: y }; 
+                ctx2.beginPath();
+                ctx2.moveTo(p1.x, p1.y);
+                ctx2.lineTo(p2.x, p2.y);
+                ctx2.lineTo(p3.x, p3.y);
+                ctx2.closePath();
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            case "Polygon":
+                break;
+            default:
+                break;
+        }
+        //redrawShapes();
+    }else if(is_down && Currtype != null && transformflag){
+        switch (Currtransform) {
+            case "Translate":
+                console.log("translate case mouse_move()");
+                TranslateChange = mytranslate(xDown, yDown, x, y);
+                //redrawShapes();
+                break;
+            case "Scale":
+                console.log("scale case mouse_move()");
+                TranslateChange = myScale(xDown, yDown, x, y);
+                break;
+            case "RotateOG":
+                console.log("rotateOG case mouse_move()");
+                TranslateChange = myRotOG(xDown, yDown, x, y);
+                break;
+            case "RotateCenter":
+                console.log("RotateCenter case mouse_move()");
+                TranslateChange = myRotCenter(xDown, yDown, x, y);
+                break;
+            default:
+                console.log("default case mouse_move()");
+                break;
+
+        }
+        //redrawShapes();
+    }
+    //redrawShapes();
+    coords = "X: "+ x + " Y: " + y +" is_down = " + is_down;    
+    document.getElementById("val2").innerHTML = coords;
+}
+function mytranslate(x1, y1, x2, y2) {
+    
+    if(shapes[0].type == "Line"){
+        console.log("line entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        TravelVector = vec2(xTrav, yTrav);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(shapes[0].x1 + xTrav, shapes[0].y1 + yTrav);
+        ctx2.lineTo(shapes[0].x2 + xTrav, shapes[0].y2 + yTrav);
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return TravelVector;
+    } else if(shapes[0].type == "Circle"){
+        console.log("circle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        TravelVector = vec2(xTrav, yTrav);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        var rad = Math.pow((Math.pow(x-xDown,2) + Math.pow(y-yDown, 2)),.5);
+        ctx2.beginPath();
+        ctx2.arc(shapes[0].x + xTrav, shapes[0].y + yTrav, shapes[0].radius, 0, 2 * Math.PI);
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return TravelVector;
+    } else if(shapes[0].type == "Rectangle"){
+        console.log("Rectangle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        TravelVector = vec2(xTrav, yTrav);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.strokeStyle = "white";
+        ctx2.strokeRect(shapes[0].x + xTrav, shapes[0].y + yTrav, shapes[0].width, shapes[0].height);
+        return TravelVector;
+    } else if(shapes[0].type == "Triangle"){
+        console.log("Triangle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        TravelVector = vec2(xTrav, yTrav);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(shapes[0].x1 + xTrav, shapes[0].y1 + yTrav);
+        ctx2.lineTo(shapes[0].x2 + xTrav, shapes[0].y2 + yTrav);
+        ctx2.lineTo(shapes[0].x3 + xTrav, shapes[0].y3 + yTrav);
+        ctx2.closePath();
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return TravelVector;
+    }
+
+}
+function myScale(x1, y1, x2, y2) {
+    
+    if(shapes[0].type == "Line"){
+        console.log("line entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        var Distance = Math.sqrt(Math.pow(xTrav, 2) + Math.pow(yTrav, 2));
+        var slopey = shapes[0].y2 - shapes[0].y1;
+        var slopex = shapes[0].x2 - shapes[0].x1;
+        var scaleFactor = Distance / 100;
+        var scaledSlopey = slopey * scaleFactor;
+        var scaledSlopex = slopex * scaleFactor;
+        newEndVector = vec2(shapes[0].x1 + scaledSlopex, shapes[0].y1 + scaledSlopey);
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(shapes[0].x1, shapes[0].y1);
+        ctx2.lineTo(shapes[0].x1 + scaledSlopex, shapes[0].y1 + scaledSlopey );
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return newEndVector;
+
+    } else if(shapes[0].type == "Circle"){
+        console.log("circle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        var Distance = Math.sqrt(Math.pow(xTrav, 2) + Math.pow(yTrav, 2));
+        TravelVector = vec2(Distance, 0);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.arc(shapes[0].x, shapes[0].y, shapes[0].radius + Distance, 0, 2 * Math.PI);
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return TravelVector;
+    } else if(shapes[0].type == "Rectangle"){
+        console.log("Rectangle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        var Distance = Math.sqrt(Math.pow(xTrav, 2) + Math.pow(yTrav, 2));
+        var scaleFactor = Distance/100;
+        TravelVector = vec2(shapes[0].width * scaleFactor, shapes[0].height * scaleFactor);
+        
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.strokeStyle = "white";
+        ctx2.strokeRect(shapes[0].x, shapes[0].y, shapes[0].width * scaleFactor, shapes[0].height * scaleFactor);
+        return TravelVector;
+    } else if(shapes[0].type == "Triangle"){
+        console.log("Triangle entered");
+        var xTrav = x2-x1;
+        var yTrav = y2-y1;
+        var Distance = Math.sqrt(Math.pow(xTrav, 2) + Math.pow(yTrav, 2));
+        var scaleFactor = Distance/100;
+        var newx2 = shapes[0].x1 + (shapes[0].x2 - shapes[0].x1) * scaleFactor;
+        var newy2 = shapes[0].y1 + (shapes[0].y2 - shapes[0].y1) * scaleFactor;
+        var newx3 = shapes[0].x1 + (shapes[0].x3 - shapes[0].x1) * scaleFactor;
+        var newy3 = shapes[0].y1 + (shapes[0].y3 - shapes[0].y1) * scaleFactor;
+        NewVector = vec4(newx2, newy2, newx3, newy3);
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(shapes[0].x1, shapes[0].y1);
+        ctx2.lineTo(newx2, newy2);
+        ctx2.lineTo(newx3, newy3);
+        ctx2.closePath();
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return NewVector;
+    }
+
+}
+function myRotCenter(x1, y1, x2, y2){
+    //[cos, -sin]
+    //[sin, cos]
+    //1 point = 
+    //new x = xcos - ysin
+    //new y = xsin + ycos
+    //find angle from shape.x1,shape.y1
+    if(shapes[0].type == "Line"){
+        console.log("line entered");
+
+        var centerx = (shapes[0].x1 + shapes[0].x2) / 2;
+        var centery = (shapes[0].y1 + shapes[0].y2) / 2;
+        var angle = Math.atan2(centerx-x2, centery-y2); // radians
+
+        var dx1 = shapes[0].x1 - centerx;
+        var dy1 = shapes[0].y1 - centery;
+        var dx2 = shapes[0].x2 - centerx;
+        var dy2 = shapes[0].y2 - centery;
+
+        var newx1 = (dx1 * Math.cos(angle)) - (dy1 * Math.sin(angle));
+        var newy1 = (dx1 * Math.sin(angle)) + (dy1 * Math.cos(angle));
+        var newx2 = (dx2 * Math.cos(angle)) - (dy2 * Math.sin(angle));
+        var newy2 = (dx2 * Math.sin(angle)) + (dy2 * Math.cos(angle));
+
+        newx1 += centerx;
+        newy1 += centery;
+        newx2 += centerx;
+        newy2 += centery;
+        newEndVector = vec4(newx1, newy1, newx2, newy2);
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(newx1, newy1);
+        ctx2.lineTo(newx2, newy2);
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return newEndVector;
+
+    }else if(shapes[0].type == "Circle"){
+        //This totally rotates a circle around its midpoint
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠟⠛⠛⠛⠋⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠙⠛⠛⠛⠿⠻⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⡀⠠⠤⠒⢂⣉⣉⣉⣑⣒⣒⠒⠒⠒⠒⠒⠒⠒⠀⠀⠐⠒⠚⠻⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⡠⠔⠉⣀⠔⠒⠉⣀⣀⠀⠀⠀⣀⡀⠈⠉⠑⠒⠒⠒⠒⠒⠈⠉⠉⠉⠁⠂⠀⠈⠙⢿⣿⣿⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⠇⠀⠀⠀⠔⠁⠠⠖⠡⠔⠊⠀⠀⠀⠀⠀⠀⠀⠐⡄⠀⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠉⠲⢄⠀⠀⠀⠈⣿⣿⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⠋⠀⠀⠀⠀⠀⠀⠀⠊⠀⢀⣀⣤⣤⣤⣤⣀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠜⠀⠀⠀⠀⣀⡀⠀⠈⠃⠀⠀⠀⠸⣿⣿⣿⣿
+// ⣿⣿⣿⣿⡿⠥⠐⠂⠀⠀⠀⠀⡄⠀⠰⢺⣿⣿⣿⣿⣿⣟⠀⠈⠐⢤⠀⠀⠀⠀⠀⠀⢀⣠⣶⣾⣯⠀⠀⠉⠂⠀⠠⠤⢄⣀⠙⢿⣿⣿
+// ⣿⡿⠋⠡⠐⠈⣉⠭⠤⠤⢄⡀⠈⠀⠈⠁⠉⠁⡠⠀⠀⠀⠉⠐⠠⠔⠀⠀⠀⠀⠀⠲⣿⠿⠛⠛⠓⠒⠂⠀⠀⠀⠀⠀⠀⠠⡉⢢⠙⣿
+// ⣿⠀⢀⠁⠀⠊⠀⠀⠀⠀⠀⠈⠁⠒⠂⠀⠒⠊⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⢀⣀⡠⠔⠒⠒⠂⠀⠈⠀⡇⣿
+// ⣿⠀⢸⠀⠀⠀⢀⣀⡠⠋⠓⠤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠄⠀⠀⠀⠀⠀⠀⠈⠢⠤⡀⠀⠀⠀⠀⠀⠀⢠⠀⠀⠀⡠⠀⡇⣿
+// ⣿⡀⠘⠀⠀⠀⠀⠀⠘⡄⠀⠀⠀⠈⠑⡦⢄⣀⠀⠀⠐⠒⠁⢸⠀⠀⠠⠒⠄⠀⠀⠀⠀⠀⢀⠇⠀⣀⡀⠀⠀⢀⢾⡆⠀⠈⡀⠎⣸⣿
+// ⣿⣿⣄⡈⠢⠀⠀⠀⠀⠘⣶⣄⡀⠀⠀⡇⠀⠀⠈⠉⠒⠢⡤⣀⡀⠀⠀⠀⠀⠀⠐⠦⠤⠒⠁⠀⠀⠀⠀⣀⢴⠁⠀⢷⠀⠀⠀⢰⣿⣿
+// ⣿⣿⣿⣿⣇⠂⠀⠀⠀⠀⠈⢂⠀⠈⠹⡧⣀⠀⠀⠀⠀⠀⡇⠀⠀⠉⠉⠉⢱⠒⠒⠒⠒⢖⠒⠒⠂⠙⠏⠀⠘⡀⠀⢸⠀⠀⠀⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠑⠄⠰⠀⠀⠁⠐⠲⣤⣴⣄⡀⠀⠀⠀⠀⢸⠀⠀⠀⠀⢸⠀⠀⠀⠀⢠⠀⣠⣷⣶⣿⠀⠀⢰⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠁⢀⠀⠀⠀⠀⠀⡙⠋⠙⠓⠲⢤⣤⣷⣤⣤⣤⣤⣾⣦⣤⣤⣶⣿⣿⣿⣿⡟⢹⠀⠀⢸⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠑⠀⢄⠀⡰⠁⠀⠀⠀⠀⠀⠈⠉⠁⠈⠉⠻⠋⠉⠛⢛⠉⠉⢹⠁⢀⢇⠎⠀⠀⢸⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⣀⠈⠢⢄⡉⠂⠄⡀⠀⠈⠒⠢⠄⠀⢀⣀⣀⣰⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⢀⣎⠀⠼⠊⠀⠀⠀⠘⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⡀⠉⠢⢄⡈⠑⠢⢄⡀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠁⠀⠀⢀⠀⠀⠀⠀⠀⢻⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣀⡈⠑⠢⢄⡀⠈⠑⠒⠤⠄⣀⣀⠀⠉⠉⠉⠉⠀⠀⠀⣀⡀⠤⠂⠁⠀⢀⠆⠀⠀⢸⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣄⡀⠁⠉⠒⠂⠤⠤⣀⣀⣉⡉⠉⠉⠉⠉⢀⣀⣀⡠⠤⠒⠈⠀⠀⠀⠀⣸⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣤⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿
+// ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣶⣶⣤⣤⣤⣤⣀⣀⣤⣤⣤⣶⣾⣿⣿⣿⣿⣿
+    }else if(shapes[0].type == "Rectangle"){
+        //unimplemented
+    }else if(shapes[0].type == "Triangle"){
+        console.log("line entered");
+
+        // var centerx = (shapes[0].x2 + shapes[0].x3) / 2;
+        // var centery = (shapes[0].y2 + shapes[0].y3) / 2;
+        var centerx = shapes[0].x1;
+        var centery = shapes[0].y1;
+        var angle = Math.atan2(centerx-x2, centery-y2); // radians
+
+        var dx1 = shapes[0].x1 - centerx;
+        var dy1 = shapes[0].y1 - centery;
+        var dx2 = shapes[0].x2 - centerx;
+        var dy2 = shapes[0].y2 - centery;
+        var dx3 = shapes[0].x3 - centerx;
+        var dy3 = shapes[0].y3 - centery;
+
+        var newx1 = (dx1 * Math.cos(angle)) - (dy1 * Math.sin(angle));
+        var newy1 = (dx1 * Math.sin(angle)) + (dy1 * Math.cos(angle));
+        var newx2 = (dx2 * Math.cos(angle)) - (dy2 * Math.sin(angle));
+        var newy2 = (dx2 * Math.sin(angle)) + (dy2 * Math.cos(angle));
+        var newx3 = (dx3 * Math.cos(angle)) - (dy3 * Math.sin(angle));
+        var newy3 = (dx3 * Math.sin(angle)) + (dy3 * Math.cos(angle));
+
+        newx1 += centerx;
+        newy1 += centery;
+        newx2 += centerx;
+        newy2 += centery;
+        newx3 += centerx;
+        newy3 += centery;
+        newEndVector = new Array(6);
+        newEndVector = [newx1, newy1, newx2, newy2, newx3, newy3];
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(newx1, newy1);
+        ctx2.lineTo(newx2, newy2);
+        ctx2.lineTo(newx3, newy3);
+        ctx2.closePath();
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return newEndVector;
+    }
+}
+function myRotOG(x1, y1, x2, y2){
+        //[cos, -sin]
+    //[sin, cos]
+    //1 point = 
+    //new x = xcos - ysin
+    //new y = xsin + ycos
+    //find angle from shape.x1,shape.y1
+    if(shapes[0].type == "Line"){
+        console.log("line entered");
+
+        var centerx = 0;
+        var centery = 0;
+        var angle = Math.atan2(centerx-x2, centery-y2); // radians
+
+        var dx1 = shapes[0].x1 - centerx;
+        var dy1 = shapes[0].y1 - centery;
+        var dx2 = shapes[0].x2 - centerx;
+        var dy2 = shapes[0].y2 - centery;
+
+        var newx1 = (dx1 * Math.cos(angle)) - (dy1 * Math.sin(angle));
+        var newy1 = (dx1 * Math.sin(angle)) + (dy1 * Math.cos(angle));
+        var newx2 = (dx2 * Math.cos(angle)) - (dy2 * Math.sin(angle));
+        var newy2 = (dx2 * Math.sin(angle)) + (dy2 * Math.cos(angle));
+
+        newx1 += centerx;
+        newy1 += centery;
+        newx2 += centerx;
+        newy2 += centery;
+        newEndVector = vec4(newx1, newy1, newx2, newy2);
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(newx1, newy1);
+        ctx2.lineTo(newx2, newy2);
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return newEndVector;
+
+    }else if(shapes[0].type == "Circle"){
+        //unimplemented
+    }else if(shapes[0].type == "Rectangle"){
+        //unimplemented
+    }else if(shapes[0].type == "Triangle"){
+        console.log("line entered");
+
+        // var centerx = (shapes[0].x2 + shapes[0].x3) / 2;
+        // var centery = (shapes[0].y2 + shapes[0].y3) / 2;
+        var centerx = 0;
+        var centery = 0;
+        var angle = Math.atan2(centerx-x2, centery-y2); // radians
+
+        var dx1 = shapes[0].x1 - centerx;
+        var dy1 = shapes[0].y1 - centery;
+        var dx2 = shapes[0].x2 - centerx;
+        var dy2 = shapes[0].y2 - centery;
+        var dx3 = shapes[0].x3 - centerx;
+        var dy3 = shapes[0].y3 - centery;
+
+        var newx1 = (dx1 * Math.cos(angle)) - (dy1 * Math.sin(angle));
+        var newy1 = (dx1 * Math.sin(angle)) + (dy1 * Math.cos(angle));
+        var newx2 = (dx2 * Math.cos(angle)) - (dy2 * Math.sin(angle));
+        var newy2 = (dx2 * Math.sin(angle)) + (dy2 * Math.cos(angle));
+        var newx3 = (dx3 * Math.cos(angle)) - (dy3 * Math.sin(angle));
+        var newy3 = (dx3 * Math.sin(angle)) + (dy3 * Math.cos(angle));
+
+        newx1 += centerx;
+        newy1 += centery;
+        newx2 += centerx;
+        newy2 += centery;
+        newx3 += centerx;
+        newy3 += centery;
+        newEndVector = new Array(6);
+        newEndVector = [newx1, newy1, newx2, newy2, newx3, newy3];
+
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+        ctx2.beginPath();
+        ctx2.moveTo(newx1, newy1);
+        ctx2.lineTo(newx2, newy2);
+        ctx2.lineTo(newx3, newy3);
+        ctx2.closePath();
+        ctx2.strokeStyle = "white";
+        ctx2.stroke();
+        return newEndVector;
+    }
+}
+
+function printline(){
+    console.log("type: %s", shapes[0].type);
+    console.log("x1: %d", shapes[0].x1);
+    console.log("y1: %d", shapes[0].x2);
+    console.log("x2: %d", shapes[0].y1);
+    console.log("y2: %d", shapes[0].y2);
+    //console.log(matThree);
+    console.log("printline not done");
+    console.log(matThree.type);
+    console.log("mat3[0][2]: %d", matThree[0][2]);
+    console.log("mat3[1][2]: %d", matThree[1][2]);
+    console.log("printline done");
+}
+
+
+function ChangeShape(Shape) {
+    Currtype = Shape;
+    Currtransform = null;
+    CurrTrans.textContent = "Current Transform: " + Currtransform;
+    Curr.textContent = "Current Shape: " + Shape;
+
+    if(Shape == null){
+        transformflag = 0;
+        Drawableflag = 1;
+        shapes = [];
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    }
+}
+
+function redrawShapes() {
+    shapes.forEach(function(shape) {
+        switch (shape.type) {
+            case "Line":
+                ctx2.beginPath();
+                ctx2.moveTo(shape.x1, shape.y1);
+                ctx2.lineTo(shape.x2, shape.y2);
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            case "Circle":
+                ctx2.beginPath();
+                ctx2.arc(shape.x, shape.y, shape.radius, 0, 2 * Math.PI);
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            case "Rectangle":
+                ctx2.strokeStyle = "white";
+                ctx2.strokeRect(shape.x, shape.y, shape.width, shape.height);
+                break;
+            case "Triangle":
+                ctx2.beginPath();
+                ctx2.moveTo(shape.x1, shape.y1);
+                ctx2.lineTo(shape.x2, shape.y2);
+                ctx2.lineTo(shape.x3, shape.y3);
+                ctx2.closePath();
+                ctx2.strokeStyle = "white";
+                ctx2.stroke();
+                break;
+            default:
+                break;
+        }
+    });
+}
+///
+
+// callback for mouse up events
+function mouse_up(event) {
+
+	xUp = event.clientX;
+	yUp = event.clientY;
+
+	is_down = false;
+
+	///////
+	console.log("Mouse up() draw flag: %d", Drawableflag);
+	console.log("Mouse up() currtype: %s", Currtype);
+	if(Drawableflag && Currtype != null){
+		console.log("reached switch");
+		switch (Currtype) {
+			case "Line":
+				shapes.push({ type: "Line", x1: xDown, y1: yDown, x2: xUp, y2: yUp });
+				break;
+			case "Circle":
+				var rad = Math.sqrt(Math.pow(xUp - xDown, 2) + Math.pow(yUp - yDown, 2));
+				shapes.push({ type: "Circle", x: xDown, y: yDown, radius: rad });
+				break;
+			case "Rectangle":
+				shapes.push({ type: "Rectangle", x: xDown, y: yDown, width: xUp - xDown, height: yUp - yDown });
+				break;
+			case "Triangle":
+				shapes.push({ type: "Triangle", x1: xDown, y1: yDown, x2: xUp, y2: yDown, x3: xUp, y3: yUp });
+				break;
+			case "Polygon":
+				break;
+			default:
+				console.log("ERROR in default case Mouse_up()");
+				break;
+		}
+        transformflag = 1;
+		Drawableflag = 0;
+		console.log("Mouse up() draw flag end of switch and if: %d", Drawableflag);
+		//ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+	}
+    //save the transformation
+    if(transformflag && Currtype != null && Currtransform != null){
+        console.log("changing shapes--- trans: %s" ,Currtransform);
+        if(Currtransform == "Translate"){
+            if(shapes[0].type == "Line"){
+                console.log("changing shapes---");
+                shapes[0].x1 = shapes[0].x1 + TranslateChange[0];
+                shapes[0].y1 = shapes[0].y1 + TranslateChange[1];
+                shapes[0].x2 = shapes[0].x2 + TranslateChange[0];
+                shapes[0].y2 = shapes[0].y2 + TranslateChange[1];
+            }
+            if(shapes[0].type == "Circle"){
+                console.log("changing shapes---");
+                shapes[0].x = shapes[0].x + TranslateChange[0];
+                shapes[0].y = shapes[0].y + TranslateChange[1];
+            }
+            if(shapes[0].type == "Rectangle"){
+                console.log("changing shapes---");
+                shapes[0].x = shapes[0].x + TranslateChange[0];
+                shapes[0].y = shapes[0].y + TranslateChange[1];
+            }
+            if(shapes[0].type == "Triangle"){
+                console.log("changing shapes---");
+                shapes[0].x1 = shapes[0].x1 + TranslateChange[0];
+                shapes[0].y1 = shapes[0].y1 + TranslateChange[1];
+                shapes[0].x2 = shapes[0].x2 + TranslateChange[0];
+                shapes[0].y2 = shapes[0].y2 + TranslateChange[1];
+                shapes[0].x3 = shapes[0].x3 + TranslateChange[0];
+                shapes[0].y3 = shapes[0].y3 + TranslateChange[1];
+            }
+        }else if(Currtransform == "Scale"){
+            if(shapes[0].type == "Line"){
+                console.log("settig scale line");
+                shapes[0].x2 = TranslateChange[0];
+                shapes[0].y2 = TranslateChange[1];
+            }
+            if(shapes[0].type == "Circle"){
+                console.log("settig scale circle");
+                shapes[0].radius = shapes[0].radius + TranslateChange[0];
+            }
+            if(shapes[0].type == "Rectangle"){
+                console.log("settig scale rect");
+                shapes[0].width = TranslateChange[0];
+                shapes[0].height = TranslateChange[1];
+            }
+            if(shapes[0].type == "Triangle"){
+                console.log("settig scale tri");
+                shapes[0].x2 = TranslateChange[0];
+                shapes[0].y2 = TranslateChange[1];
+                shapes[0].x3 = TranslateChange[2];
+                shapes[0].y3 = TranslateChange[3];
+            }
+        }else if(Currtransform == "RotateCenter"){
+            console.log("setting RotCirc");
+            if(shapes[0].type == "Line"){
+                shapes[0].x1 = TranslateChange[0];
+                shapes[0].y1 = TranslateChange[1];
+                shapes[0].x2 = TranslateChange[2];
+                shapes[0].y2 = TranslateChange[3];
+            }
+            if(shapes[0].type == "Circle"){
+                //shhhhhhh
+            }
+            if(shapes[0].type == "Rectangle"){
+                
+            }
+            if(shapes[0].type == "Triangle"){
+                shapes[0].x1 = TranslateChange[0];
+                shapes[0].y1 = TranslateChange[1];
+                shapes[0].x2 = TranslateChange[2];
+                shapes[0].y2 = TranslateChange[3];
+                shapes[0].x3 = TranslateChange[4];
+                shapes[0].y3 = TranslateChange[5];
+            }
+
+        }else if(Currtransform == "RotateOG"){
+            console.log("setting Rotog");
+            if(shapes[0].type == "Line"){
+                shapes[0].x1 = TranslateChange[0];
+                shapes[0].y1 = TranslateChange[1];
+                shapes[0].x2 = TranslateChange[2];
+                shapes[0].y2 = TranslateChange[3];
+            }
+            if(shapes[0].type == "Circle"){
+                //shhhhhhh
+            }
+            if(shapes[0].type == "Rectangle"){
+                
+            }
+            if(shapes[0].type == "Triangle"){
+                shapes[0].x1 = TranslateChange[0];
+                shapes[0].y1 = TranslateChange[1];
+                shapes[0].x2 = TranslateChange[2];
+                shapes[0].y2 = TranslateChange[3];
+                shapes[0].x3 = TranslateChange[4];
+                shapes[0].y3 = TranslateChange[5];
+            }
+
+        }
+    }
+    // Clear the canvas and redraw all stored shapes///
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    redrawShapes();
+
+	coords = "X: "+ xUp + " Y: " + yUp +" is_down = " + is_down;
+
+	document.getElementById("val3").innerHTML = coords;
+}
+
+function SetTransfrom(transform){
+    Currtransform = transform;
+    CurrTrans.textContent = "Current Transformation: " + transform;
+}
+
+</SCRIPT>
+
+<script src="../Common/initShaders.js"></script>
+<script src="../Common/MVnew.js"></script>
+<script src="cubeq.js"></script>
+
+</HTML>
