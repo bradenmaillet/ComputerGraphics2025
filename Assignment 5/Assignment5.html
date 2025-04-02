@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<body onLoad="initialize()">
+    <h1>Canvas</h1>
+    <p>
+        <h1>Lines and Curves</h1>
+        <label for="G">(R):</label>
+        <input type="text" id="RadIn" name="RadIn">
+        <label for="G">(x1,y1):</label>
+        <input type="text" id="OneIn" name="OneIn">
+        <label for="G">(x2,y2):</label>
+        <input type="text" id="TwoIn" name="TwoIn">
+        <label for="G">(x3,y3):</label>
+        <input type="text" id="ThreeIn" name="ThreeIn">
+        <label for="G">(x4,y4):</label>
+        <input type="text" id="FourIn" name="FourIn">
+        
+        <br>
+        Use (x1,y1) and (x2,y2) for lines, (x1,y1) and (r) for circles, (x1,y1), (x2,y2), (x3,y3), and (x4,y4) for curves.
+        <br>
+    </p>
+    <p>
+        <button id= "DDALine">DDALine</button>
+        <button id= "MidpointLine">MidpointLine</button>
+        <button id= "MidPointCircle">MidPointCircle</button>
+        <button id= "MidPointEllipse">MidPointEllipse</button>
+        <button id= "BezierCurve">BezierCurve</button>
+        <button id= "HermiteCurve">HermiteCurve</button>
+        <button id= "BSplineCurve">BSplineCurve</button>
+    </p>
+
+<canvas id="myCanvas" width="400" height="400" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+
+var TESTCANVAS = 0; // 1 to test canvas
+
+function initialize() {
+
+    var ddaline = document.getElementById("DDALine");
+    ddaline.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        console.log("DDALine");
+        console.log(x1, y1, x2, y2);
+        DDALine(x1, y1, x2, y2);
+    });
+    var midpointline = document.getElementById("MidpointLine");
+    midpointline.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        MidpointLine(x1, y1, x2, y2);
+    });
+    var midpointcircle = document.getElementById("MidPointCircle");
+    midpointcircle.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const r = parseInt(document.getElementById("RadIn").value.split(",")[0]);
+        MidPointCircle(x1, y1, r);
+    });
+    var midpointellipse = document.getElementById("MidPointEllipse");
+    midpointellipse.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        MidPointEllipse(x1, y1, x2, y2);
+    });
+    var beziercurve = document.getElementById("BezierCurve");
+    beziercurve.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        const x3 = parseInt(document.getElementById("ThreeIn").value.split(",")[0]);
+        const y3 = parseInt(document.getElementById("ThreeIn").value.split(",")[1]);
+        const x4 = parseInt(document.getElementById("FourIn").value.split(",")[0]);
+        const y4 = parseInt(document.getElementById("FourIn").value.split(",")[1]);
+        BezierCurve(x1, y1, x2, y2, x3, y3, x4, y4);
+    });
+    var hermitecurve = document.getElementById("HermiteCurve");
+    hermitecurve.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        const x3 = parseInt(document.getElementById("ThreeIn").value.split(",")[0]);
+        const y3 = parseInt(document.getElementById("ThreeIn").value.split(",")[1]);
+        const x4 = parseInt(document.getElementById("FourIn").value.split(",")[0]);
+        const y4 = parseInt(document.getElementById("FourIn").value.split(",")[1]);
+        HermiteCurve(x1, y1, x2, y2, x3, y3, x4, y4);
+    });
+    var bsplinecurve = document.getElementById("BSplineCurve");
+    bsplinecurve.addEventListener("click", function() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const x1 = parseInt(document.getElementById("OneIn").value.split(",")[0]);
+        const y1 = parseInt(document.getElementById("OneIn").value.split(",")[1]);
+        const x2 = parseInt(document.getElementById("TwoIn").value.split(",")[0]);
+        const y2 = parseInt(document.getElementById("TwoIn").value.split(",")[1]);
+        const x3 = parseInt(document.getElementById("ThreeIn").value.split(",")[0]);
+        const y3 = parseInt(document.getElementById("ThreeIn").value.split(",")[1]);
+        const x4 = parseInt(document.getElementById("FourIn").value.split(",")[0]);
+        const y4 = parseInt(document.getElementById("FourIn").value.split(",")[1]);
+        BSplineCurve(x1, y1, x2, y2, x3, y3, x4, y4);
+    });
+}
+
+function DDALine(x1, y1, x2, y2) {
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var slope = dy / dx;
+    var x = x1;
+    var y = y1;
+
+    for (x; x <= x2; x++) {
+        ctx.fillRect(x, Math.round(y), 1, 1);
+        y += slope;
+    }
+    if(TESTCANVAS == 1) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.strokeStyle = "red";
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    }
+}
+// need to fix this for negative slopes
+function MidpointLine(x1, y1, x2, y2) {
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+
+    var d = 2 * dy - dx;
+    var incrE = 2 * dy;
+    var incrNE = 2 * (dy - dx);
+    var x = x1;
+    var y = y1;
+
+    ctx.fillRect(x, y, 1, 1);
+    while(x < x2) {
+        if (d <= 0) {
+            d = d + incrE;
+            x++;
+        } else {
+            d = d + incrNE;
+            x++;
+            y++;
+        }
+        ctx.fillRect(x, y, 1, 1);
+    }
+    if(TESTCANVAS == 1) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.strokeStyle = "blue";
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+    }
+}
+function MidPointCircle(x, y, r) {
+    var x1 = 0;
+    var y1 = r;
+    var d = 1 - r;
+
+    Circle(x1, x, y1, y, r);
+
+    while (y1 > x1) {
+        if (d < 0) {
+            d += 2 * x1 + 3;
+        } else {
+            d += 2 * (x1 - y1) + 5;
+            y1--;
+        }
+        x1++;
+        Circle(x1, x, y1, y, r);
+    }
+    if(TESTCANVAS == 1) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.strokeStyle = "green";
+        ctx.stroke();
+    }
+}
+function Circle(x, xOff, y, yOff, r) {
+    ctx.fillRect(x + xOff , y + yOff, 1, 1);
+    ctx.fillRect(y + xOff, x + yOff, 1, 1);
+    ctx.fillRect(y + xOff, -x  + yOff, 1, 1);
+    ctx.fillRect(x + xOff , -y + yOff, 1, 1);
+    ctx.fillRect(-x + xOff, -y + yOff, 1, 1);
+    ctx.fillRect(-y + xOff, -x + yOff, 1, 1);
+    ctx.fillRect(-y + xOff, x + yOff , 1, 1);
+    ctx.fillRect(-x + xOff, y + yOff , 1, 1);
+}
+function MidPointEllipse(x, y, a, b) {
+    var d1 = (b*b) - (a*a*b) + (0.25*a*a);
+    var d2;
+    var x1 = 0;
+    var y1 = b;
+
+    Ellipse(x1, x ,y1, y);
+
+    while (((a*a)*(y1-0.5)) > ((b*b)*(x1+1))) {
+        if (d1 < 0) {
+            d1 += ((b*b)*(2*x1+3));
+        } else {
+            d1 += ((b*b)*(2*x1+3)) + ((a*a)*(-2*y1+2));
+            y1--;
+        }
+        x1++;
+        Ellipse(x1, x, y1, y);
+    }  //  R1
+
+    d2 = ((b*b)*(x1+0.5)*(x1+0.5))+((a*a)*(y1-1)*(y1-1))-(a*a*b*b);
+    while (y1 > 0) {
+        if (d2 < 0) {
+            d2 += ((b*b)*(2*x1+2)) + ((a*a)*(-2*y1+3));
+            x1++;
+        } else {
+            d2 += ((a*a)*(-2*y1+3));
+        }
+        y1--;
+        Ellipse(x1, x, y1, y);
+    }  //  R2
+
+    if(TESTCANVAS == 1) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, a, b, 0, 0, 2 * Math.PI);
+        ctx.strokeStyle = "orange";
+        ctx.stroke();
+    }
+}
+function Ellipse(x, xOff, y, yOff) {
+    ctx.fillRect(x + xOff, y + yOff, 1, 1);
+    ctx.fillRect(-x + xOff, y + yOff, 1, 1);
+    ctx.fillRect(x + xOff, -y + yOff, 1, 1);
+    ctx.fillRect(-x + xOff, -y + yOff, 1, 1);
+}
+function BezierCurve(x1, y1, x2, y2, x3, y3, x4, y4) {
+    var n = 100;
+    var i;
+    var x, y, z;
+    var delta = 1.0/n;
+    var t;
+
+    x = x1;
+    y = y1;
+    t = 0.0;
+    ctx.fillRect(x, y, 1, 1);
+    for(i = 0; i < n; ++i){
+        t += delta;
+        var t2 = t * t;
+        var t3 = t2 * t;
+           
+        var q1=(1-t);
+        var q2=q1*q1;
+        var q3=q2*q1;
+        x = q3*x1 + (3*t*q2)*x2 + (3*t2*q1)*x3 + t3*x4;
+        y = q3*y1 + (3*t*q2)*y2 + (3*t2*q1)*y3 + t3*y4;
+        ctx.fillRect(x, y, 1, 1);
+    }
+
+    if(TESTCANVAS == 1) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.strokeStyle = "purple";
+        ctx.bezierCurveTo(x2, y2, x3, y3, x4, y4);
+        ctx.stroke();
+    }
+}
+function HermiteCurve(x1, y1, x2, y2, rx1, ry1, rx2, ry2) {
+    var n = 100;
+    var i;
+    var x, y, z;
+    var delta = 1.0/n;
+    var t;
+
+    x = x1;
+    y = y1;
+    t = 0.0;
+
+    ctx.fillRect(x, y, 1, 1);
+
+    for (i = 0; i < n; i++) {
+        t += delta;
+        var t2 = t * t;
+        var t3 = t2 * t;
+
+        x = ((2*t3)-(3*t2)+1)*x1 + ((-2*t3)+(3*t2))*x2 + (t3-(2*t2)+t)*rx1 + (t3-t2)*rx2;
+        y = ((2*t3)-(3*t2)+1)*x1 + ((-2*t3)+(3*t2))*y2 + (t3-(2*t2)+t)*rx1 + (t3-t2)*rx2;
+        ctx.fillRect(x, y, 1, 1);
+    }
+
+}
+function BSplineCurve(x1, y1, x2, y2, x3, y3, x4, y4) {
+    var n = 100;
+    var i;
+    var x, y, z;
+    var delta = 1.0/n;
+    var t;
+
+    x = x1;
+    y = y1;
+    t = 0.0;
+
+    ctx.fillRect(x, y, 1, 1);
+
+    for (i = 0; i < n; i++) {
+        t += delta;
+        var t2 = t * t;
+        var t3 = t2 * t;
+
+        x = (((1-t3)/6)*x1)+(((3*t3-6*t2+4)/6)*x2)+(((-3*t3+3*t2+3*t+1)/6)*x3)+((t3/6)*x4);
+        y = (((1-t3)/6)*y1)+(((3*t3-6*t2+4)/6)*y3)+(((-3*t3+3*t2+3*t+1)/6)*y3)+((t3/6)*y4);
+        
+        ctx.fillRect(x, y, 1, 1);
+    }
+}
+
+
+</script>
+
+</body>
+</html>
+
