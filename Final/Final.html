@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+
+<style>
+    body {
+        display: flex; /* Use Flexbox for layout */
+        margin: 0; /* Remove default margin */
+        height: 100vh; /* Full viewport height */
+    }
+
+    #gl-canvas {
+        flex: 1; /* Take up the remaining space on the left */
+        border: 1px solid black; /* Optional: Add a border around the canvas */
+    }
+
+    #controls {
+        width: 250px; /* Reduce the width of the controls section */
+        padding: 10px; /* Add some padding */
+        overflow-y: auto; /* Enable scrolling if content overflows */
+        background-color: #f9f9f9; /* Optional: Light background for controls */
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow */
+        display: flex; /* Use Flexbox for vertical alignment */
+        flex-direction: column; /* Stack items vertically */
+        justify-content: center; /* Center content vertically */
+    }
+
+    label, input, select, button {
+        display: block; /* Stack inputs vertically */
+        margin-bottom: 10px; /* Add spacing between inputs */
+        font-size: 14px; /* Make text slightly smaller */
+    }
+
+    table {
+        width: 100%; /* Make the table take up the full width */
+        margin-bottom: 10px; /* Add spacing below the table */
+    }
+
+    h3 {
+        margin-top: 0; /* Remove extra margin at the top of headings */
+    }
+	button {
+        padding: 5px 10px; /* Reduce button size */
+        font-size: 14px; /* Match font size with other elements */
+    }
+	
+</style>
+
+<body>
+	<canvas id="gl-canvas" width="512" height="512"></canvas>
+
+	<div>
+		<table>
+			<tr>
+				<th>Object Color</th>
+				<td><input type="color" id="object-color" value="#ffffff"></td>
+				<th>Ambient Light Color</th>
+				<td><input type="range" id="ambient-light-color" min="0" max="1" step="0.01" value="0.2"></td>
+			</tr>
+			<tr>
+				<th>Diffuse Light Color</th>
+				<td><input type="color" id="diffuse-light-color" value="#ffffff"></td>
+				<th>Specular Light Color</th>
+				<td><input type="color" id="specular-light-color" value="#ffffff"></td>
+			</tr>
+			<tr>
+				<th>Ambient Material Color</th>
+				<td><input type="color" id="ambient-material-color" value="#ffffff"></td>
+				<th>Diffuse Material Color</th>
+				<td><input type="color" id="diffuse-material-color" value="#ffffff"></td>
+			</tr>
+			<tr>
+				<th>Specular Material Color</th>
+				<td><input type="color" id="specular-material-color" value="#ffffff"></td>
+				<th>Material Shininess</th>
+				<td><input type="range" id="material-shininess" min=".01" max="10" value="5"></td>
+			</tr>
+		</table>
+
+		<table>
+			<tr>
+				<th>Light Position</th>
+				<td>X: <input type="range" id="light-pos-x" min="-50" max="50" step="0.1" value="0"></td>
+				<td>Y: <input type="range" id="light-pos-y" min="-50" max="50" step="0.1" value="0"></td>
+				<td>Z: <input type="range" id="light-pos-z" min="-50" max="50" step="0.1" value="20"></td>
+			</tr>
+			<tr>
+				<th>Eye Position</th>
+				<td>X: <input type="range" id="eye-pos-x" min="-5" max="5" step="0.1" value="0"></td>
+				<td>Y: <input type="range" id="eye-pos-y" min="-5" max="5" step="0.1" value="0"></td>
+				<td>Z: <input type="range" id="eye-pos-z" min="-5" max="5" step="0.1" value="5"></td>
+			</tr>
+			<tr>
+				<th>At Direction</th>
+				<td>X: <input type="range" id="at-dir-x" min="-5" max="5" step="0.1" value="0"></td>
+				<td>Y: <input type="range" id="at-dir-y" min="-5" max="5" step="0.1" value="0"></td>
+				<td>Z: <input type="range" id="at-dir-z" min="-5" max="5" step="0.1" value="0"></td>
+			</tr>
+			<tr>
+				<th>Up Direction</th>
+				<td>X: <input type="range" id="up-dir-x" min="-1" max="1" step="0.1" value="0"></td>
+				<td>Y: <input type="range" id="up-dir-y" min="-1" max="1" step="0.1" value="1"></td>
+				<td>Z: <input type="range" id="up-dir-z" min="-1" max="1" step="0.1" value="0"></td>
+			</tr>
+			<tr>
+				<th>Projection Bounds</th>
+				<td>Left: <input type="range" id="left-pos" min="-10" max="10" step="0.1" value="-4"></td>
+				<td>Right: <input type="range" id="right-pos" min="-10" max="10" step="0.1" value="4"></td>
+				<td>Top: <input type="range" id="top-pos" min="-10" max="10" step="0.1" value="4"></td>
+				<td>Bottom: <input type="range" id="bottom-pos" min="-10" max="10" step="0.1" value="-4"></td>
+			</tr>
+		</table>
+
+		<select id="render-mode">
+			<option value="wireframe">Wireframe</option>
+			<option value="gouraud">Gouraud Shading</option>
+			<option value="phong">Phong Shading</option>
+		</select>
+
+		<select id="translate-mode">
+			<option value="rotate">Rotate</option>
+			<option value="scale">Scale</option>
+			<option value="translate">Translate</option>
+		</select>
+		<select id="shape-mode">
+			<option value="teapot">teapot</option>
+			<option value="sphere">sphere</option>
+		</select>
+		<button id = "Help">Help</button>
+
+	</div>
+
+</body>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+#version 300 es
+
+in vec4 aPosition;
+in vec4 aNormal;
+out vec4 vColor;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+uniform mat3 normalMatrix;
+
+void main()
+{
+
+    vec3 pos = (modelViewMatrix * aPosition).xyz;
+    vec3 light = lightPosition.xyz;
+    vec3 L = normalize( light - pos );
+
+
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+
+    // Transform vertex normal into eye coordinates
+
+    vec3 N = normalize( normalMatrix*aNormal.xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+
+    if( dot(L, N) < 0.0 ) {
+	      specular = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = projectionMatrix * modelViewMatrix * aPosition;
+
+    vColor = ambient + diffuse +specular;
+
+    vColor.a = 1.0;
+
+
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+#version 300 es
+
+precision mediump float;
+
+in vec4 vColor;
+out vec4 fColor;
+
+uniform vec4 objectColor;
+
+void
+main()
+{
+    fColor = objectColor * vColor;
+}
+</script>
+
+<script id="vertex-shader-phong" type="x-shader/x-vertex">
+#version 300 es
+
+in vec4 aPosition;
+in vec4 aNormal;
+
+out vec3 vNormal;
+out vec3 vPosition;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat3 normalMatrix;
+
+void main() {
+    // Transform vertex position and normal into eye coordinates
+    vPosition = vec3(modelViewMatrix * aPosition);
+    vNormal = normalize(normalMatrix * aNormal.xyz);
+
+    // Set the position of the vertex
+    gl_Position = projectionMatrix * modelViewMatrix * aPosition;
+}
+</script>
+
+<script id="fragment-shader-phong" type="x-shader/x-fragment">
+#version 300 es
+
+precision mediump float;
+
+in vec3 vNormal;
+in vec3 vPosition;
+
+out vec4 fColor;
+
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform vec4 lightPosition;
+uniform vec4 objectColor;
+uniform float shininess;
+
+void main() {
+    // Normalize the interpolated normal
+    vec3 N = normalize(vNormal);
+
+    // Compute the light direction
+    vec3 L = normalize(lightPosition.xyz - vPosition);
+
+    // Compute the view direction
+    vec3 E = normalize(-vPosition);
+
+    // Compute the halfway vector
+    vec3 H = normalize(L + E);
+
+    // Compute ambient, diffuse, and specular components
+    vec4 ambient = ambientProduct;
+
+    float Kd = max(dot(L, N), 0.0);
+    vec4 diffuse = Kd * diffuseProduct;
+
+    float Ks = pow(max(dot(N, H), 0.0), shininess);
+    vec4 specular = Ks * specularProduct;
+
+    if (dot(L, N) < 0.0) {
+        specular = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    // Combine the components
+    fColor = objectColor * (ambient + diffuse + specular);
+    fColor.a = 1.0;
+}
+</script>
+
+
+
+
+
+<script src="../Common/initShaders.js"></script>
+<script src="../Common/MVnew.js"></script>
+<script src="vertices.js"></script>
+<script src="patches.js"></script>
+<script src="Final.js"></script>
+
+</body>
+</html>
